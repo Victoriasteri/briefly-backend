@@ -19,6 +19,12 @@ import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import {
+  SignUpResponseDto,
+  SignInResponseDto,
+  RefreshTokenResponseDto,
+  UserResponseDto,
+} from './dto/auth-response.dto';
 import { AuthGuard } from './auth.guard';
 
 @ApiTags('auth')
@@ -32,19 +38,10 @@ export class AuthController {
   @ApiResponse({
     status: 201,
     description: 'User successfully created',
-    schema: {
-      example: {
-        user: {
-          id: 'uuid',
-          email: 'user@example.com',
-          created_at: '2025-01-21T12:00:00.000Z',
-        },
-        message: 'User created successfully',
-      },
-    },
+    type: SignUpResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Bad request - validation error' })
-  async signUp(@Body() signUpDto: SignUpDto) {
+  async signUp(@Body() signUpDto: SignUpDto): Promise<SignUpResponseDto> {
     return this.authService.signUp(signUpDto);
   }
 
@@ -54,19 +51,10 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'User successfully signed in',
-    schema: {
-      example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        user: {
-          id: 'uuid',
-          email: 'user@example.com',
-        },
-      },
-    },
+    type: SignInResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async signIn(@Body() signInDto: SignInDto) {
+  async signIn(@Body() signInDto: SignInDto): Promise<SignInResponseDto> {
     return this.authService.signIn(signInDto);
   }
 
@@ -96,17 +84,10 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Current user information',
-    schema: {
-      example: {
-        id: 'uuid',
-        email: 'user@example.com',
-        user_metadata: {},
-        created_at: '2025-01-21T12:00:00.000Z',
-      },
-    },
+    type: UserResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getMe(@Request() req) {
+  async getMe(@Request() req): Promise<UserResponseDto> {
     return this.authService.getUser(req.user.accessToken);
   }
 
@@ -116,19 +97,12 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Token successfully refreshed',
-    schema: {
-      example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        user: {
-          id: 'uuid',
-          email: 'user@example.com',
-        },
-      },
-    },
+    type: RefreshTokenResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Invalid refresh token' })
-  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+  async refreshToken(
+    @Body() refreshTokenDto: RefreshTokenDto,
+  ): Promise<RefreshTokenResponseDto> {
     return this.authService.refreshToken(refreshTokenDto.refresh_token);
   }
 }

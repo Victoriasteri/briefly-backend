@@ -7,6 +7,12 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { UserService } from '../user/user.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
+import {
+  SignUpResponseDto,
+  SignInResponseDto,
+  RefreshTokenResponseDto,
+  UserResponseDto,
+} from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -46,10 +52,13 @@ export class AuthService {
       console.error('Failed to create local user:', localUserError);
     }
 
+    // Sanitize user object - remove any sensitive data
+    const sanitizedUser = this.sanitizeUser(data.user);
+
     return {
-      user: data.user,
+      user: sanitizedUser,
       message: 'User created successfully',
-    };
+    } as SignUpResponseDto;
   }
 
   async signIn(signInDto: SignInDto) {
@@ -71,11 +80,14 @@ export class AuthService {
       throw new UnauthorizedException('No session returned');
     }
 
+    // Sanitize user object - remove any sensitive data
+    const sanitizedUser = this.sanitizeUser(data.user);
+
     return {
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
-      user: data.user,
-    };
+      user: sanitizedUser,
+    } as SignInResponseDto;
   }
 
   async signOut(accessToken: string) {
@@ -104,7 +116,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    return user;
+    // Sanitize user object - remove any sensitive data
+    return this.sanitizeUser(user);
   }
 
   async refreshToken(refreshToken: string) {
@@ -123,10 +136,55 @@ export class AuthService {
       throw new UnauthorizedException('No session returned');
     }
 
+    // Sanitize user object - remove any sensitive data
+    const sanitizedUser = this.sanitizeUser(data.user);
+
     return {
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
-      user: data.user,
+      user: sanitizedUser,
+    } as RefreshTokenResponseDto;
+  }
+
+  /**
+   * Sanitize user object to remove sensitive data like passwords
+   * Supabase doesn't return passwords, but we ensure no sensitive data leaks
+   */
+  private sanitizeUser(user: any): UserResponseDto {
+    // Create a clean user object with only safe fields
+    const sanitized: any = {
+      id: user.id,
+      email: user.email,
+      created_at: user.created_at,
     };
+
+    // Only include optional fields if they exist
+    if (user.user_metadata) {
+      sanitized.user_metadata = user.user_metadata;
+    }
+    if (user.updated_at) {
+      sanitized.updated_at = user.updated_at;
+    }
+    if (user.app_metadata) {
+      sanitized.app_metadata = user.app_metadata;
+    }
+    if (user.aud) {
+      sanitized.aud = user.aud;
+    }
+    if (user.confirmed_at) {
+      sanitized.confirmed_at = user.confirmed_at;
+    }
+    if (user.last_sign_in_at) {
+      sanitized.last_sign_in_at = user.last_sign_in_at;
+    }
+
+    // Explicitly exclude any password-related fields
+    delete sanitized.password;
+    delete sanitized.encrypted_password;
+    delete sanitized.password_hash;
+    delete sanitized.raw_user_meta_data?.password;
+    delete sanitized.raw_app_meta_data?.password;
+
+    return sanitized as UserResponseDto;
   }
 }
